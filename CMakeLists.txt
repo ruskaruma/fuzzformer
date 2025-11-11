@@ -34,6 +34,9 @@ add_library(fuzzformer_core STATIC
   src/core/fuzzyAttention.cpp
   src/core/fuzzyAttention.cu
   src/core/transformerBlock.cpp
+  src/utils/tensorUtils.cpp
+  src/utils/timer.cpp
+  src/utils/logger.cpp
 )
 
 target_include_directories(fuzzformer_core
@@ -82,6 +85,7 @@ if(FUZZFORMER_BUILD_TESTS)
 
   add_executable(fuzzformer_tests
     tests/smoke.cpp
+    tests/utils_test.cpp
   )
 
   target_link_libraries(fuzzformer_tests
