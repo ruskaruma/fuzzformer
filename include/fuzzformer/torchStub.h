@@ -1,11 +1,11 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <vector>
-
-namespace torch {
-
+namespace torch
+{
 struct Device {
   constexpr bool is_cuda() const noexcept { return false; }
 };
@@ -13,17 +13,24 @@ struct Device {
 struct Tensor {
   Device device() const noexcept { return {}; }
   Tensor options() const { return {}; }
+  Tensor contiguous() const { return {}; }
+  bool is_contiguous() const { return true; }
+  std::int64_t size(std::size_t) const { return 0; }
+  std::int64_t dim() const { return 0; }
+  std::vector<std::int64_t> sizes() const { return {}; }
+  template <typename T>
+  T* data_ptr() const {
+    return nullptr;
+  }
 };
 
 inline Tensor ones(const std::vector<std::size_t>&, const Tensor&) { return {}; }
 inline Tensor zeros(const std::vector<std::size_t>&, const Tensor&) { return {}; }
-
 namespace nn {
 
 class Module {
  public:
   virtual ~Module() = default;
-
   template <typename ModuleType>
   ModuleType register_module(const std::string&, ModuleType module) {
     return module;
@@ -43,10 +50,9 @@ class Linear : public Module {
   Tensor operator()(const Tensor& input) const { return input; }
 };
 
-}  // namespace nn
+}
 
-}  // namespace torch
-
+}
 #ifndef TORCH_CHECK
 #define TORCH_CHECK(condition, message) \
   do {                                  \
