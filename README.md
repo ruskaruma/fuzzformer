@@ -1,6 +1,6 @@
 # FuzzFormer
 
-FuzzFormer is a native C++20 and CUDA research stack that prototypes fuzzy attention—an uncertainty-aware alternative to softmax—for transformer workloads. The system keeps the entire execution path compiled: custom Tensor Core kernels, libtorch modules, coroutine-driven runtime, and OpenGL visualization work together to expose every memory transfer and gradient path for inspection while staying performant on modern NVIDIA GPUs.
+     FuzzFormer is a native C++20 and CUDA research stack that prototypes fuzzy attention—an uncertainty-aware alternative to softmax—for transformer workloads. The system keeps the entire execution path compiled: custom Tensor Core kernels, libtorch modules, coroutine-driven runtime, and OpenGL visualization work together to expose every memory transfer and gradient path for inspection while staying performant on modern NVIDIA GPUs.
 
 ## Components
 - Core CUDA kernels for fuzzy attention forward/backward experimentation
