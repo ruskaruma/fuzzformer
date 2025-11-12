@@ -86,6 +86,7 @@ if(FUZZFORMER_BUILD_TESTS)
   add_executable(fuzzformer_tests
     tests/smoke.cpp
     tests/utils_test.cpp
+    tests/test_transformer_block.cpp
   )
 
   target_link_libraries(fuzzformer_tests
