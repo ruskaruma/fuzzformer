@@ -1,13 +1,13 @@
 #pragma once
 
-#include "fuzzformer/fuzzyAttention.h"
-#include "fuzzformer/modelConfig.h"
-
 #ifdef FUZZFORMER_HAS_TORCH
 #include <torch/torch.h>
 #else
 #include "fuzzformer/torchStub.h"
 #endif
+
+#include "fuzzformer/fuzzyAttention.h"
+#include "fuzzformer/modelConfig.h"
 
 namespace fuzzformer {
 
