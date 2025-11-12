@@ -22,6 +22,23 @@ void launch_fuzzy_attention_forward(const float* queries,
                                     int seq_len,
                                     int head_dim,
                                     cudaStream_t stream);
+
+void launch_fuzzy_attention_backward(const float* grad_out,
+                                     const float* queries,
+                                     const float* keys,
+                                     const float* values,
+                                     const float* alpha,
+                                     const float* beta,
+                                     float* d_queries,
+                                     float* d_keys,
+                                     float* d_values,
+                                     float* d_alpha,
+                                     float* d_beta,
+                                     int batch_size,
+                                     int num_heads,
+                                     int seq_len,
+                                     int head_dim,
+                                     cudaStream_t stream);
 }  // namespace kernels
 
 namespace {
@@ -102,9 +119,63 @@ torch::Tensor fuzzy_attention_forward(const torch::Tensor& queries,
 
 std::vector<torch::Tensor> fuzzy_attention_backward(
     const torch::Tensor& grad_out,
-    const FuzzyAttentionContext& /*context*/) {
-  TORCH_CHECK(false, "fuzzy_attention_backward is not implemented yet");
-  return {};
+    const FuzzyAttentionContext& context) {
+  auto grad = grad_out.contiguous();
+  check_tensor(grad, "grad_out", torch::kFloat32);
+
+  auto q = context.queries.contiguous();
+  auto k = context.keys.contiguous();
+  auto v = context.values.contiguous();
+  auto alpha = context.alpha.contiguous();
+  auto beta = context.beta.contiguous();
+
+  check_tensor(q, "context.queries", torch::kFloat32);
+  check_tensor(k, "context.keys", torch::kFloat32);
+  check_tensor(v, "context.values", torch::kFloat32);
+
+  const auto batch_size = q.size(0);
+  const auto num_heads = q.size(1);
+  const auto seq_len = q.size(2);
+  const auto head_dim = q.size(3);
+
+  TORCH_CHECK(grad.sizes() == q.sizes(), "grad_out shape must match output");
+
+  check_parameter(alpha, "context.alpha", num_heads, torch::kFloat32);
+  check_parameter(beta, "context.beta", num_heads, torch::kFloat32);
+
+  tensor::validate_attention_dims(batch_size, num_heads, seq_len, head_dim);
+
+  auto options = q.options();
+  auto d_queries = torch::zeros_like(q);
+  auto d_keys = torch::zeros_like(k);
+  auto d_values = torch::zeros_like(v);
+  auto d_alpha = torch::zeros_like(alpha);
+  auto d_beta = torch::zeros_like(beta);
+
+  kernels::launch_fuzzy_attention_backward(
+      grad.data_ptr<float>(),
+      q.data_ptr<float>(),
+      k.data_ptr<float>(),
+      v.data_ptr<float>(),
+      alpha.data_ptr<float>(),
+      beta.data_ptr<float>(),
+      d_queries.data_ptr<float>(),
+      d_keys.data_ptr<float>(),
+      d_values.data_ptr<float>(),
+      d_alpha.data_ptr<float>(),
+      d_beta.data_ptr<float>(),
+      static_cast<int>(batch_size),
+      static_cast<int>(num_heads),
+      static_cast<int>(seq_len),
+      static_cast<int>(head_dim),
+      at::cuda::getCurrentCUDAStream());
+
+  const auto err = cudaGetLastError();
+  TORCH_CHECK(err == cudaSuccess,
+              "fuzzy_attention_backward kernel launch failed: ",
+              cudaGetErrorString(err));
+
+  return {d_queries, d_keys, d_values, d_alpha, d_beta};
 }
 
 }  // namespace fuzzformer
