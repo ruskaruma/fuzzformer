@@ -80,19 +80,19 @@ graph LR
 
 ```mermaid
 sequenceDiagram
-    participant Main
-    participant Sched
-    participant Loop
-    participant Queue
-    participant Worker
+    participant M as Main Thread
+    participant S as AsyncScheduler
+    participant L as EventLoop
+    participant Q as Task Queue
+    participant W as Worker Thread
     
-    Main->>Sched: schedule_async
-    Sched->>Loop: schedule
-    Loop->>Queue: enqueue
-    Loop->>Worker: notify
-    Worker->>Queue: dequeue
-    Worker->>Worker: execute
-    Worker-->>Main: complete
+    M->>S: schedule_async
+    S->>L: schedule
+    L->>Q: enqueue
+    L->>W: notify
+    W->>Q: dequeue
+    W->>W: execute
+    W-->>M: complete
 ```
 
 ## Transformer Block
