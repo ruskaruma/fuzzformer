@@ -111,6 +111,7 @@ if(FUZZFORMER_BUILD_TESTS)
     tests/test_async_runtime.cpp
     tests/test_visualization.cpp
     tests/test_metrics.cpp
+    tests/benchmark_kernels.cpp
   )
 
   target_link_libraries(fuzzformer_tests
