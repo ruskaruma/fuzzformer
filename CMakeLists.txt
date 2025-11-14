@@ -27,6 +27,10 @@ if(FUZZFORMER_USE_TORCH)
     endif()
   else()
     message(WARNING "libtorch not found; building with stub interfaces.")
+    message(STATUS "To enable full functionality:")
+    message(STATUS "  1. Download libtorch from https://pytorch.org/get-started/locally/")
+    message(STATUS "  2. Extract and set: export LIBTORCH_HOME=/path/to/libtorch")
+    message(STATUS "  3. Reconfigure with: cmake -DCMAKE_PREFIX_PATH=${LIBTORCH_HOME} ..")
   endif()
 endif()
 
@@ -34,6 +38,7 @@ add_library(fuzzformer_core STATIC
   src/core/fuzzyAttention.cpp
   src/core/fuzzyAttention.cu
   src/core/transformerBlock.cpp
+  src/core/model.cpp
   src/utils/tensorUtils.cpp
   src/utils/timer.cpp
   src/utils/logger.cpp
@@ -79,6 +84,7 @@ if(FUZZFORMER_BUILD_TESTS)
   FetchContent_Declare(
     googletest
     URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
   FetchContent_MakeAvailable(googletest)
@@ -87,6 +93,7 @@ if(FUZZFORMER_BUILD_TESTS)
     tests/smoke.cpp
     tests/utils_test.cpp
     tests/test_transformer_block.cpp
+    tests/test_model_inference.cpp
   )
 
   target_link_libraries(fuzzformer_tests

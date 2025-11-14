@@ -100,7 +100,6 @@ __global__ void fuzzy_attention_backward_kernel(const float* __restrict__ grad_o
   if (row >= total_rows) {
     return;
   }
-
   const int bh = row / seq_len;
   const int query_index = row % seq_len;
   const int batch_index = bh / num_heads;
@@ -123,7 +122,6 @@ __global__ void fuzzy_attention_backward_kernel(const float* __restrict__ grad_o
   for (int d = 0; d < head_dim; ++d) {
     dq_vec[d] = 0.0f;
   }
-
   float norm = 0.0f;
   for (int key_index = 0; key_index < seq_len; ++key_index) {
     const float* k_vec = k_head + key_index * head_dim;
@@ -136,7 +134,6 @@ __global__ void fuzzy_attention_backward_kernel(const float* __restrict__ grad_o
     const float membership = __expf(-alpha_h * diff * diff);
     norm += membership;
   }
-
   const float inv_norm = norm > kEpsilon ? 1.0f / norm : 0.0f;
   float sum_gw_w = 0.0f;
 
@@ -159,15 +156,12 @@ __global__ void fuzzy_attention_backward_kernel(const float* __restrict__ grad_o
     }
     sum_gw_w += gw * weight;
   }
-
   float grad_alpha_accum = 0.0f;
   float grad_beta_accum = 0.0f;
-
   for (int key_index = 0; key_index < seq_len; ++key_index) {
     const float* k_vec = k_head + key_index * head_dim;
     const float* v_vec = v_head + key_index * head_dim;
     float* dk_vec = dk_head + key_index * head_dim;
-
     float score = 0.0f;
     for (int d = 0; d < head_dim; ++d) {
       score += q_vec[d] * k_vec[d];
@@ -175,13 +169,10 @@ __global__ void fuzzy_attention_backward_kernel(const float* __restrict__ grad_o
     score /= static_cast<float>(head_dim);
     const float diff = score - beta_h;
     const float membership = __expf(-alpha_h * diff * diff);
-    const float weight = membership * inv_norm;
-
     float gw = 0.0f;
     for (int d = 0; d < head_dim; ++d) {
       gw += grad_vec[d] * v_vec[d];
     }
-
     const float g_m = inv_norm > 0.0f ? (gw - sum_gw_w) * inv_norm : 0.0f;
     const float g_s = -2.0f * alpha_h * diff * membership * g_m;
 
@@ -196,7 +187,6 @@ __global__ void fuzzy_attention_backward_kernel(const float* __restrict__ grad_o
       atomicAdd(dk_vec + d, g_s * q_val * scale);
     }
   }
-
   atomicAdd(d_alpha + head_index, grad_alpha_accum);
   atomicAdd(d_beta + head_index, grad_beta_accum);
 }
@@ -265,5 +255,5 @@ void launch_fuzzy_attention_backward(const float* grad_out,
       head_dim);
 }
 
-}  // namespace kernels
-}  // namespace fuzzformer
+} 
+} 
