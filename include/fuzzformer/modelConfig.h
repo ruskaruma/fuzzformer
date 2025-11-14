@@ -9,6 +9,7 @@ struct ModelConfig {
   std::size_t num_heads = 4;
   std::size_t ff_dim = 256;
   float dropout = 0.0F;
+  std::size_t num_layers = 2;
 };
 
 }  // namespace fuzzformer

@@ -9,16 +9,37 @@
 - Utility layer for tensor validation, timing, and logging
 - GoogleTest harness ready for CUDA-enabled regression tests
 
+## Dependencies
+
+### Required
+- CMake 3.22+
+- CUDA 12.0+ toolkit
+- C++20 compiler (GCC 13+ or Clang 15+)
+- NVIDIA GPU with compute capability 8.6+ (RTX 4060+)
+
+### Optional (for full functionality)
+- **libtorch** (C++11 ABI, CUDA-enabled): Download from [PyTorch](https://pytorch.org/get-started/locally/)
+  - Extract and set: `export LIBTORCH_HOME=/path/to/libtorch`
+  - Configure with: `cmake -DCMAKE_PREFIX_PATH=${LIBTORCH_HOME} ..`
+
+**Note:** Without libtorch, the project builds with stub interfaces for testing the build system. Full model inference requires libtorch.
+
 ## Build
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
 ```
 
 ## Test
 ```bash
 ctest --test-dir build
 ```
+
+**Note:** Some tests are skipped when libtorch is not available. This is expected behavior.
+
+### Known Warnings
+- **nvlink warnings** about incompatible static libraries (`librt.a`, `libpthread.a`, `libdl.a`) are harmless and can be ignored. They occur because CUDA's linker skips system static libs that aren't needed for device code linking.
 
 ## License
 See the `LICENSE` file for details.
