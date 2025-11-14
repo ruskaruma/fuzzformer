@@ -8,10 +8,11 @@
 
 namespace fuzzformer {
 
-VisualRenderer::VisualRenderer() : initialized_(false) {}
+VisualRenderer::VisualRenderer() : initialized_(false), opengl_initialized_(false), opengl_context_(nullptr) {}
 
 VisualRenderer::~VisualRenderer() {
   shutdown();
+  shutdown_opengl();
 }
 
 void VisualRenderer::initialize() {
@@ -20,6 +21,25 @@ void VisualRenderer::initialize() {
 
 void VisualRenderer::shutdown() {
   initialized_ = false;
+}
+
+bool VisualRenderer::initialize_opengl(int width, int height) {
+  opengl_initialized_ = false;
+  opengl_context_ = nullptr;
+  return false;
+}
+
+void VisualRenderer::render_opengl_frame() {
+  if (!opengl_initialized_) {
+    return;
+  }
+}
+
+void VisualRenderer::shutdown_opengl() {
+  if (opengl_initialized_) {
+    opengl_context_ = nullptr;
+    opengl_initialized_ = false;
+  }
 }
 
 void VisualRenderer::render_attention(const torch::Tensor& attention) {
