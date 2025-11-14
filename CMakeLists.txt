@@ -62,6 +62,68 @@ target_include_directories(fuzzformer_core
 target_include_directories(fuzzformer_core PUBLIC ${LIBUV_INCLUDE_DIRS})
 target_link_libraries(fuzzformer_core PUBLIC ${LIBUV_LIBRARIES})
 
+# CUPTI for GPU profiling
+find_library(CUPTI_LIBRARY cupti PATHS
+  ${CUDA_TOOLKIT_ROOT_DIR}/extras/CUPTI/lib64
+  ${CUDA_TOOLKIT_ROOT_DIR}/lib64
+  /usr/local/cuda/extras/CUPTI/lib64
+  /usr/local/cuda/lib64
+  /usr/lib/x86_64-linux-gnu
+  ENV CUDA_PATH
+  PATH_SUFFIXES lib64 lib
+)
+if(CUPTI_LIBRARY)
+  target_link_libraries(fuzzformer_core PUBLIC ${CUPTI_LIBRARY})
+  
+  # Find CUPTI include directory
+  find_path(CUPTI_INCLUDE_DIR cupti.h
+    PATHS
+      ${CUDA_TOOLKIT_ROOT_DIR}/extras/CUPTI/include
+      /usr/local/cuda/extras/CUPTI/include
+      /usr/include
+    NO_DEFAULT_PATH
+  )
+  if(CUPTI_INCLUDE_DIR)
+    target_include_directories(fuzzformer_core PUBLIC ${CUPTI_INCLUDE_DIR})
+  endif()
+  target_compile_definitions(fuzzformer_core PUBLIC HAVE_CUPTI)
+  
+  message(STATUS "CUPTI found: ${CUPTI_LIBRARY}")
+else()
+  message(STATUS "CUPTI not found; profiling will use basic timing only")
+endif()
+
+# OpenGL renderer (optional)
+option(FUZZFORMER_USE_OPENGL "Enable OpenGL visualization" OFF)
+if(FUZZFORMER_USE_OPENGL)
+  find_package(OpenGL QUIET)
+  find_package(glfw3 QUIET)
+  
+  # Fallback to pkg-config for GLFW
+  if(NOT glfw3_FOUND)
+    pkg_check_modules(GLFW3 QUIET glfw3)
+    if(GLFW3_FOUND)
+      set(glfw3_FOUND TRUE)
+      set(GLFW3_LIBRARIES ${GLFW3_LIBRARIES})
+      set(GLFW3_INCLUDE_DIRS ${GLFW3_INCLUDE_DIRS})
+    endif()
+  endif()
+  
+  if(OpenGL_FOUND AND glfw3_FOUND)
+    target_include_directories(fuzzformer_core PUBLIC ${GLFW3_INCLUDE_DIRS})
+    if(TARGET glfw)
+      target_link_libraries(fuzzformer_core PUBLIC OpenGL::GL glfw)
+    else()
+      target_link_libraries(fuzzformer_core PUBLIC OpenGL::GL ${GLFW3_LIBRARIES})
+    endif()
+    target_compile_definitions(fuzzformer_core PUBLIC FUZZFORMER_HAS_OPENGL)
+    message(STATUS "OpenGL and GLFW found; OpenGL renderer enabled")
+  else()
+    message(WARNING "OpenGL/GLFW not found; OpenGL renderer disabled")
+    message(STATUS "To enable: install libglfw3-dev and libgl1-mesa-dev (or libglfw3 and mesa-libGL)")
+  endif()
+endif()
+
 if(FUZZFORMER_HAS_TORCH)
   target_include_directories(fuzzformer_core PUBLIC ${TORCH_INCLUDE_DIRS})
   target_link_libraries(fuzzformer_core PUBLIC ${TORCH_LIBRARIES})

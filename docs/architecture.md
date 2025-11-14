@@ -188,7 +188,7 @@ graph TB
 sequenceDiagram
     participant Main as Main Thread
     participant Sched as AsyncScheduler
-    participant Loop as EventLoop libuv
+    participant Loop as EventLoop
     participant Queue as Task Queue
     participant Worker as Worker Thread
     
