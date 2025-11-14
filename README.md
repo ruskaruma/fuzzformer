@@ -5,9 +5,12 @@
 ## Components
 - Core CUDA kernels for fuzzy attention forward/backward experimentation
 - Libtorch transformer blocks wired to the custom attention operator
-- Coroutine-based runtime skeleton for async training and rendering
+- libuv-based async runtime for non-blocking task execution
+- Terminal heatmap visualization for attention matrices
+- Performance metrics collector with throughput cards
+- Comprehensive benchmarking suite
 - Utility layer for tensor validation, timing, and logging
-- GoogleTest harness ready for CUDA-enabled regression tests
+- GoogleTest harness with 17+ tests
 
 ## Dependencies
 
@@ -37,6 +40,17 @@ ctest --test-dir build
 ```
 
 **Note:** Some tests are skipped when libtorch is not available. This is expected behavior.
+
+## Benchmark
+```bash
+cd build
+ctest -R Benchmark -V
+```
+
+Benchmarks measure kernel throughput, model inference latency, and memory bandwidth.
+
+## Documentation
+- [Architecture Overview](docs/architecture.md) - System design and component details
 
 ### Known Warnings
 - **nvlink warnings** about incompatible static libraries (`librt.a`, `libpthread.a`, `libdl.a`) are harmless and can be ignored. They occur because CUDA's linker skips system static libs that aren't needed for device code linking.
