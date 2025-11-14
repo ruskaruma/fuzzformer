@@ -122,6 +122,18 @@ __global__ void fuzzy_attention_backward_kernel(const float* __restrict__ grad_o
   for (int d = 0; d < head_dim; ++d) {
     dq_vec[d] = 0.0f;
   }
+  
+  // Pre-compute all scores and memberships to avoid redundant computation
+  // For large seq_len, we'll recompute rather than use excessive stack space
+  const float scale = 1.0f / static_cast<float>(head_dim);
+  constexpr int MAX_CACHE_SIZE = 256;
+  const bool use_cache = seq_len <= MAX_CACHE_SIZE;
+  
+  float scores[MAX_CACHE_SIZE];
+  float memberships[MAX_CACHE_SIZE];
+  float weights[MAX_CACHE_SIZE];
+  
+  // First pass: compute norm
   float norm = 0.0f;
   for (int key_index = 0; key_index < seq_len; ++key_index) {
     const float* k_vec = k_head + key_index * head_dim;
@@ -129,25 +141,21 @@ __global__ void fuzzy_attention_backward_kernel(const float* __restrict__ grad_o
     for (int d = 0; d < head_dim; ++d) {
       score += q_vec[d] * k_vec[d];
     }
-    score /= static_cast<float>(head_dim);
+    score *= scale;
+    scores[key_index] = score;
     const float diff = score - beta_h;
     const float membership = __expf(-alpha_h * diff * diff);
+    memberships[key_index] = membership;
     norm += membership;
   }
   const float inv_norm = norm > kEpsilon ? 1.0f / norm : 0.0f;
+  
+  // Second pass: compute weights and accumulate gradients
   float sum_gw_w = 0.0f;
-
   for (int key_index = 0; key_index < seq_len; ++key_index) {
-    const float* k_vec = k_head + key_index * head_dim;
     const float* v_vec = v_head + key_index * head_dim;
-    float score = 0.0f;
-    for (int d = 0; d < head_dim; ++d) {
-      score += q_vec[d] * k_vec[d];
-    }
-    score /= static_cast<float>(head_dim);
-    const float diff = score - beta_h;
-    const float membership = __expf(-alpha_h * diff * diff);
-    const float weight = membership * inv_norm;
+    const float weight = memberships[key_index] * inv_norm;
+    weights[key_index] = weight;
 
     float gw = 0.0f;
     for (int d = 0; d < head_dim; ++d) {
@@ -156,19 +164,33 @@ __global__ void fuzzy_attention_backward_kernel(const float* __restrict__ grad_o
     }
     sum_gw_w += gw * weight;
   }
+  
+  // Third pass: compute parameter gradients using cached values (or recompute if too large)
   float grad_alpha_accum = 0.0f;
   float grad_beta_accum = 0.0f;
   for (int key_index = 0; key_index < seq_len; ++key_index) {
     const float* k_vec = k_head + key_index * head_dim;
     const float* v_vec = v_head + key_index * head_dim;
     float* dk_vec = dk_head + key_index * head_dim;
-    float score = 0.0f;
-    for (int d = 0; d < head_dim; ++d) {
-      score += q_vec[d] * k_vec[d];
+    
+    float score, membership, weight, diff;
+    if (use_cache) {
+      score = scores[key_index];
+      membership = memberships[key_index];
+      weight = weights[key_index];
+      diff = score - beta_h;
+    } else {
+      // Recompute for large sequences
+      score = 0.0f;
+      for (int d = 0; d < head_dim; ++d) {
+        score += q_vec[d] * k_vec[d];
+      }
+      score *= scale;
+      diff = score - beta_h;
+      membership = __expf(-alpha_h * diff * diff);
+      weight = membership * inv_norm;
     }
-    score /= static_cast<float>(head_dim);
-    const float diff = score - beta_h;
-    const float membership = __expf(-alpha_h * diff * diff);
+    
     float gw = 0.0f;
     for (int d = 0; d < head_dim; ++d) {
       gw += grad_vec[d] * v_vec[d];
@@ -179,7 +201,6 @@ __global__ void fuzzy_attention_backward_kernel(const float* __restrict__ grad_o
     grad_alpha_accum += g_m * (-diff * diff * membership);
     grad_beta_accum += g_m * (2.0f * alpha_h * diff * membership);
 
-    const float scale = 1.0f / static_cast<float>(head_dim);
     for (int d = 0; d < head_dim; ++d) {
       const float k_val = k_vec[d];
       const float q_val = q_vec[d];
